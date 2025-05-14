@@ -1,6 +1,32 @@
 # ossm-3-demo
 OpenShift Service Mesh 3 Demo/Quckstart with Gateway API for ingress.
 
+## branch rhoai-cluster
+This branch `rhoai-cluster` is intended to be able to run in an RHOAI cluster
+
+Red Hat OpenShift AI still depends OSSM 2.x (2.6 as of today). The intention of this branch is to showcase OSSM 3 that can be deployed in an RHOAI cluster, with out affecting
+it.
+
+It does this by deploying the Istio control plane in a separate namespace:
+- `istio-system-3x`
+
+and relying on the `discoverySelectors` set to match namespaces with the label: 
+- `istio.io/rev: ossm-3`
+
+```yaml
+apiVersion: sailoperator.io/v1alpha1
+kind: Istio
+metadata:
+  name: ossm-3
+  namespace: istio-system-3
+spec:
+...
+  discovery:
+    selectors:
+      - matchLabels:
+          istio.io/rev: ossm-3
+```
+
 ## For Red Hatters
 Use the following demo:
 [AWS with OpenShift Open Environment](https://catalog.demo.redhat.com/catalog?item=babylon-catalog-prod/sandboxes-gpte.sandbox-ocp.prod)
@@ -140,24 +166,24 @@ Set up Kiali
 ------------
 Create cluster role binding for kiali to be able to read ocp monitoring
 ```bash
-oc apply -f ./resources/Kiali/kialiCrb.yaml -n istio-system
+oc apply -f ./resources/Kiali/kialiCrb.yaml -n istio-system-3
 ```
 Set up Kiali CR. The URL for Jaeger UI (which was exposed earlier) needs to be set to Kiali CR in `.spec.external_services.tracing.url`
 > **_NOTE:_**  In this example, the `.spec.version` is missing so the istio version is automatically set by Kiali operator. You can specify the version manually, but it must be one that is supported by the operator; otherwise, an error will appear in events on the Kiali resource.
 ```bash
 export TRACING_INGRESS_ROUTE="http://$(oc get -n tracing-system route tracing-ui -o jsonpath='{.spec.host}')"
-cat ./resources/Kiali/kialiCr.yaml | JAEGERROUTE="${TRACING_INGRESS_ROUTE}" envsubst | oc -n istio-system apply -f -
-oc wait --for condition=Successful kiali/kiali --timeout 150s -n istio-system 
+cat ./resources/Kiali/kialiCr.yaml | JAEGERROUTE="${TRACING_INGRESS_ROUTE}" envsubst | oc -n istio-system-3 apply -f -
+oc wait --for condition=Successful kiali/kiali --timeout 150s -n istio-system-3 
 ```
 Increase timeout for the Kiali ui route in OCP since big queries for spans can take longer
 ```bash
-oc annotate route kiali haproxy.router.openshift.io/timeout=60s -n istio-system
+oc annotate route kiali haproxy.router.openshift.io/timeout=60s -n istio-system-3
 ```
 Optionally, OSSMC plugin can be installed as well
 > **_NOTE:_**  In this example, the `.spec.version` is missing so the istio version is automatically set by Kiali operator. You can specify the version manually, but it must be one that is supported by the operator and the version needs to be **the same as Kiali CR**.
 ```bash
-oc apply -f ./resources/Kiali/kialiOssmcCr.yaml -n istio-system
-oc wait -n istio-system --for=condition=Successful OSSMConsole ossmconsole --timeout 120s
+oc apply -f ./resources/Kiali/kialiOssmcCr.yaml -n istio-system-3
+oc wait -n istio-syste-3 --for=condition=Successful OSSMConsole ossmconsole --timeout 120s
 ```
 
 Set up BookInfo
@@ -215,7 +241,7 @@ curl -s $GATEWAY/hello-service | jq
 
 Check Kiali UI
 ```bash
-KIALI_HOST=$(oc get route kiali -n istio-system -o=jsonpath='{.spec.host}')
+KIALI_HOST=$(oc get route kiali -n istio-system-3 -o=jsonpath='{.spec.host}')
 echo "https://${KIALI_HOST}"
 ```
 You can check all namespaces that all pods running correctly:

@@ -7,7 +7,7 @@ spec:
     strategy: openshift
   deployment:
     cluster_wide_access: true
-    namespace: istio-system
+    namespace: istio-system-3
     pod_labels:
       sidecar.istio.io/inject: 'false'
   external_services:
@@ -46,7 +46,7 @@ spec:
       provider: tempo
       tempo_config:
         url_format: "jaeger"
-  installation_tag: "Kiali [istio-system]"
-  istio_namespace: istio-system
+  installation_tag: "Kiali [istio-system-3]"
+  istio_namespace: istio-system-3
   server:
     write_timeout: 60

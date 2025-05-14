@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#export GATEWAY=$(oc get route istio-ingressgateway -n istio-system -o template --template '{{ .spec.host }}')
+#export GATEWAY=$(oc get route istio-ingressgateway -n istio-system-3 -o template --template '{{ .spec.host }}')
 export GATEWAY=$(oc get gateway hello-gateway -n istio-ingress -o template --template='{{(index .status.addresses 0).value}}')
 
 curl -s $GATEWAY/hello | jq

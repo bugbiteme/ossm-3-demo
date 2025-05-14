@@ -35,15 +35,16 @@ echo "${BYellow}Waiting for OpenTelemetryCollector deployment to become availabl
 oc wait --for condition=Available deployment/otel-collector --timeout 60s -n opentelemetrycollector
 
 echo "${BYellow}Installing OSSM3...${NC}"
-oc new-project istio-system
+oc new-project istio-system-3
 echo "${BYellow}Installing IstioCR...${NC}"
-oc apply -f ./resources/OSSM3/istiocr.yaml  -n istio-system
+oc apply -f ./resources/OSSM3/istiocr.yaml  -n istio-system-3
 echo "${BYellow}Waiting for istio to become ready...${NC}"
-oc wait --for condition=Ready istio/default --timeout 60s  -n istio-system
+oc wait --for condition=Ready istio/default --timeout 60s  -n istio-system-3
 
 echo "${BYellow}Installing Telemetry resource...${NC}"
-oc apply -f ./resources/TempoOtel/istioTelemetry.yaml  -n istio-system
+oc apply -f ./resources/TempoOtel/istioTelemetry.yaml  -n istio-system-3
 echo "${BYellow}Adding OTEL namespace as a part of the mesh${NC}"
+oc label namespace opentelemetrycollector istio-discovery=enabled
 oc label namespace opentelemetrycollector istio-injection=enabled
 
 echo "${BYellow}Installing IstioCNI...${NC}"
@@ -55,6 +56,7 @@ oc wait --for condition=Ready istiocni/default --timeout 60s -n istio-cni
 echo "${BYellow}Creating ingress gateway via Gateway API...${NC}"
 oc new-project istio-ingress
 echo "${BYellow}Adding istio-ingress namespace as a part of the mesh${NC}"
+oc label namespace istio-ingress istio-discovery=enabled
 oc label namespace istio-ingress istio-injection=enabled
 oc apply -k ./resources/gateway
 
@@ -70,26 +72,26 @@ oc expose svc istio-ingressgateway --port=http2 --name=istio-ingressgateway -n i
 
 echo "${BYellow}Enabling user workload monitoring in OCP${NC}"
 oc apply -f ./resources/Monitoring/ocpUserMonitoring.yaml
-echo "${BYellow}Enabling service monitor in istio-system namespace${NC}"
-oc apply -f ./resources/Monitoring/serviceMonitor.yaml -n istio-system
-echo "${BYellow}Enabling pod monitor in istio-system namespace${NC}"
-oc apply -f ./resources/Monitoring/podMonitor.yaml -n istio-system
+echo "${BYellow}Enabling service monitor in istio-system-3 namespace${NC}"
+oc apply -f ./resources/Monitoring/serviceMonitor.yaml -n istio-system-3
+echo "${BYellow}Enabling pod monitor in istio-system-3 namespace${NC}"
+oc apply -f ./resources/Monitoring/podMonitor.yaml -n istio-system-3
 echo "${BYellow}Enabling pod monitor in istio-ingress namespace${NC}"
 oc apply -f ./resources/Monitoring/podMonitor.yaml -n istio-ingress
 
 echo "${BYellow}Installing Kiali...${NC}"
-oc project istio-system
+oc project istio-system-3
 echo "${BYellow}Creating cluster role binding for kiali to read ocp monitoring${NC}"
-oc apply -f ./resources/Kiali/kialiCrb.yaml -n istio-system
+oc apply -f ./resources/Kiali/kialiCrb.yaml -n istio-system-3
 echo "${BYellow}Installing KialiCR...${NC}"
 export TRACING_INGRESS_ROUTE="http://$(oc get -n tracing-system route tracing-ui -o jsonpath='{.spec.host}')"
-cat ./resources/Kiali/kialiCr.yaml | JAEGERROUTE="${TRACING_INGRESS_ROUTE}" envsubst | oc -n istio-system apply -f - 
+cat ./resources/Kiali/kialiCr.yaml | JAEGERROUTE="${TRACING_INGRESS_ROUTE}" envsubst | oc -n istio-system-3 apply -f - 
 echo "${BYellow}Waiting for kiali to become ready...${NC}"
-oc wait --for condition=Successful kiali/kiali --timeout 150s -n istio-system 
-oc annotate route kiali haproxy.router.openshift.io/timeout=60s -n istio-system 
+oc wait --for condition=Successful kiali/kiali --timeout 150s -n istio-system-3 
+oc annotate route kiali haproxy.router.openshift.io/timeout=60s -n istio-system-3 
 
 echo "${BYellow}Install Kiali OSSM Console plugin...${NC}"
-oc apply -f ./resources/Kiali/kialiOssmcCr.yaml -n istio-system
+oc apply -f ./resources/Kiali/kialiOssmcCr.yaml -n istio-system-3
 
 echo "${BYellow}Installing Sample RestAPI...${NC}"
 oc apply -k ./resources/application/kustomize/overlays/pod 
@@ -97,6 +99,8 @@ oc apply -k ./resources/application/kustomize/overlays/pod
 echo "${BYellow}Installing Bookinfo...${NC}"
 oc new-project bookinfo
 echo "${BYellow}Adding bookinfo namespace as a part of the mesh${NC}"
+oc label namespace bookinfo istio.io/rev=ossm-3
+oc label namespace bookinfo istio-discovery=enabled
 oc label namespace bookinfo istio-injection=enabled
 echo "${BYellow}Enabling pod monitor in bookinfo namespac${NC}"
 oc apply -f ./resources/Monitoring/podMonitor.yaml -n bookinfo
@@ -111,7 +115,7 @@ echo "${BYellow}NOTE: Kiali will show metrics of bookinfo app right after pod mo
 
 # this env will be used in traffic generator
 export INGRESSHOST=$(oc get route istio-ingressgateway -n istio-ingress -o=jsonpath='{.spec.host}')
-KIALI_HOST=$(oc get route kiali -n istio-system -o=jsonpath='{.spec.host}')
+KIALI_HOST=$(oc get route kiali -n istio-system-3 -o=jsonpath='{.spec.host}')
 
 echo "${BYellow}[optional] Installing Bookinfo traffic generator...${NC}"
 cat ./resources/Bookinfo/traffic-generator-configmap.yaml | ROUTE="http://${INGRESSHOST}/productpage" envsubst | oc -n bookinfo apply -f - 
