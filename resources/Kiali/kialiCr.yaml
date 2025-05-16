@@ -17,7 +17,7 @@ spec:
       config_map_name: istio
       istio_sidecar_injector_config_map_name: istio-sidecar-injector
       istiod_deployment_name: istiod
-      url_service_version: 'http://istiod.istio-system:15014/version'
+      url_service_version: 'http://istiod.istio-system-3:15014/version'
       component_status:
         components:
         - app_label: "istiod"
