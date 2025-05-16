@@ -7,6 +7,8 @@ spec:
     strategy: openshift
   deployment:
     cluster_wide_access: true
+    accessible_namespaces:
+      - "**"
     namespace: istio-system-3
     pod_labels:
       sidecar.istio.io/inject: 'false'
