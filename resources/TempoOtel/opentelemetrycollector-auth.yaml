@@ -1,0 +1,35 @@
+kind: OpenTelemetryCollector
+apiVersion: opentelemetry.io/v1beta1
+metadata:
+  name: otel
+  namespace: istio-system
+spec:
+  serviceAccount: otel-collector
+  config:
+    exporters:
+      otlp/north:
+        endpoint: 'tempo-sample-gateway.tracing-system.svc.cluster.local:8090'
+        tls:
+          insecure: false
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+        auth:
+          authenticator: bearertokenauth
+        headers:
+          X-Scope-OrgID: "north"
+    extensions:
+      bearertokenauth:
+        filename: /var/run/secrets/kubernetes.io/serviceaccount/token   
+    receivers:
+      otlp:
+        protocols:
+          grpc: 
+            endpoint: 0.0.0.0:4317
+          http: {}
+    service:
+      extensions: [bearertokenauth]
+      pipelines:
+        traces:
+          exporters:
+            - otlp/north
+          receivers:
+            - otlp

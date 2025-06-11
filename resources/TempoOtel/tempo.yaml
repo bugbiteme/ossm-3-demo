@@ -3,12 +3,21 @@ apiVersion: tempo.grafana.com/v1alpha1
 metadata:
   name: sample
 spec:
+  tenants:
+    authentication:
+      - tenantId: f78bf974-aee2-47e8-8bb4-9ba41a41824a
+        tenantName: north
+      - tenantId: ac4dd897-40da-4403-9cab-53905e22ef78
+        tenantName: south 
+    mode: openshift
   storage:
     secret:
       name: my-storage-secret
       type: s3
   storageSize: 1Gi
   template:
+    gateway:
+      enabled: true
     querier:
       resources:
         limits:
