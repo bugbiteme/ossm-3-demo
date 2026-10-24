@@ -48,7 +48,7 @@ spec:
              mountPath: "/storage"
      containers:
        - name: minio
-         image: minio/minio
+         image: cgr.dev/chainguard/minio:latest
          args:
            - server
            - /storage
